@@ -1,0 +1,18 @@
+{
+	"id": "super1337h4xx0r",
+	"password": "supersecurepassword",
+	"server":
+	{
+		"ip": "127.0.0.1",
+		"port": "13370"
+	},
+	"actions": {
+		"delay": "3",
+		"steps": [
+			"INCREASE 1",
+			"DECREASE 2",
+			"INCREASE 10",
+			"DEREASE 20"
+			]
+	}
+}
