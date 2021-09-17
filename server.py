@@ -1,4 +1,4 @@
-from flask import Flask, request, url_for
+from flask import Flask, request, url_for, jsonify
 import json
 
 app = Flask(__name__)
@@ -12,11 +12,14 @@ id_value = dict()
 def register():
     jsondata = request.get_json()
     data = json.loads(jsondata)
-    id = data["id"]
-    password = data["password"]
+    try:
+        id = data["id"]
+        password = data["password"]
+    except:
+        return jsonify({"error": "invalid data sent to the server"})
 
     if id in id_password and id_password[id] != password:
-        return {}, 401
+        return jsonify({"error": "authentification error"})
 
     if id not in id_present:
         id_present[id] = 1
@@ -27,24 +30,31 @@ def register():
     id_value[id] = 0
 
     result = {"url": id_url[id]}
-    return json.dumps(result)
+    return jsonify(result)
 
 @app.route('/update/', methods = ['POST'])
 def update():
     jsondata = request.get_json()
     data = json.loads(jsondata)
-    id = data["id"]
-    val = data["delta"]
+    try:
+        id = data["id"]
+        val = int(data["delta"])
+    except:
+        return jsonify({"error": "invalid data sent to the server"})
+
     id_value[id] += val
-    print(id_value[id])
-    result = {"response": 0}
+    print("id " + id + " value = " + str(id_value[id]))
+    result = {"new_value": id_value[id]}
     return json.dumps(result)
 
 @app.route('/close/', methods = ['POST'])
 def close():
     jsondata = request.get_json()
     data = json.loads(jsondata)
-    id = data["id"]
+    try:
+        id = data["id"]
+    except:
+        return jsonify({"error": "invalid data sent to the server"})
     id_present[id] -= 1
     if id_present[id] == 0:
         id_present.pop(id, None)
@@ -56,4 +66,4 @@ def close():
     return json.dumps(result)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=13370)
+    app.run(debug=True, host='127.0.0.1', port=13370)
