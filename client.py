@@ -1,8 +1,11 @@
 import requests
 import json
 import time
+import sys
 
-with open('config_1.json') as config_file:
+filename = sys.argv[1]
+
+with open(filename) as config_file:
     config = json.load(config_file)
 server_url = "http://" + config["server"]["ip"] + ":" + config["server"]["port"]
 
