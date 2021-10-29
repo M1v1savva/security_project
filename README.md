@@ -3,7 +3,7 @@
 ---
 Authors:<br/>
 *Poliakov Ivan*<br/>
-*Topal Christian*
+*Topal Cristian*
 ---
 
 ##How to use:<br/>
