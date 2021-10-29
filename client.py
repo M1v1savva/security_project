@@ -3,15 +3,11 @@ import json
 import time
 import sys
 
-def exit_connection(config):
-    print("Logging out...")
-    message = {'id': config["id"]}
-    res = requests.post(server_url + '/close/', json=json.dumps(message)).json()
-    print("Done.")
-    print("Client finished.")
-    exit(0)
-
-filename = sys.argv[1]
+filename = None
+try:
+    filename = sys.argv[1]
+except:
+    filename = "config_1.json"
 
 with open(filename) as config_file:
     config = json.load(config_file)
@@ -19,14 +15,12 @@ server_url = "http://" + config["server"]["ip"] + ":" + config["server"]["port"]
 
 print("Registering with the server...")
 message = {"id": config["id"], "password": config["password"]}
-res = requests.post(server_url + "/register/", json=json.dumps(message)).json()
+try:
+    res = requests.get(server_url + "/register/", auth=(config["id"], config["password"]), json=json.dumps(message))
+    res.raise_for_status()
+except requests.exceptions.HTTPError as err:
+    raise SystemExit(err)
 
-if "error" in res:
-    print(res["error"])
-    exit_connection(config)
-print("Registered successfully.")
-
-url_nxt = res["url"]
 actions = config["actions"]["steps"]
 delay = int(config["actions"]["delay"])
 
@@ -42,15 +36,23 @@ for item in actions:
         continue
 
     print("Sending value delta " + str(value) + "...")
-    message = {'id': config["id"], 'delta': value}
-    res = requests.post(server_url + url_nxt, json=json.dumps(message)).json()
+    message = {'delta': value}
+    try:
+        res = requests.post(server_url + '/update/', auth=(config["id"], config["password"]), json=json.dumps(message))
+        res.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
 
-    if "error" in res:
-        print(res["error"])
-        exit_connection(config)
-    print("New value set to " + str(res["new_value"]) + ".")
+    print("New value set to " + str(res.json()["new_value"]) + ".")
     print("Done.")
 
     time.sleep(delay)
 
-exit_connection(config)
+print("Logging out...")
+try:
+    res = requests.get(server_url + '/close/', auth=(config["id"], config["password"]))
+    res.raise_for_status()
+except requests.exceptions.HTTPError as err:
+    raise SystemExit(err)
+print("Done.")
+print("Client finished.")

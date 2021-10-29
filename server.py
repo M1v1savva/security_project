@@ -1,6 +1,7 @@
-from flask import Flask, request, url_for, jsonify
+from flask import Flask, request, jsonify
 import json
-
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 
 #python client.py config_1.json
 
@@ -17,42 +18,43 @@ import json
 
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
 
-id_present = dict()
-id_password = dict()
-id_url = dict()
-id_value = dict()
+users = dict() #id - hashed password
+id_present = dict() # id - num of active sessions for id
+id_value = dict() # id - id's counter
 
-@app.route('/register/', methods = ['POST'])
+@auth.verify_password
+def verify_password(username, password):
+    # user_id = verify_auth_token(username)
+    user_id = None
+    if not user_id:
+        if username in users and check_password_hash(users.get(username), password):
+            return True
+        elif username in users:
+            return False
+        users[username] = generate_password_hash(password)
+        return True
+    return True
+
+@app.route('/register/')
+@auth.login_required
 def register():
-    jsondata = request.get_json()
-    data = json.loads(jsondata)
-    try:
-        id = data["id"]
-        password = data["password"]
-    except:
-        return jsonify({"error": "invalid data sent to the server"})
-
-    if id in id_password and id_password[id] != password:
-        return jsonify({"error": "authentification error"})
-
-    if id not in id_present:
-        id_present[id] = 1
-        id_url[id] = url_for("update")
-    else:
+    id = auth.current_user()
+    if id in id_present:
         id_present[id] += 1
-    id_password[id] = password
-    id_value[id] = 0
-
-    result = {"url": id_url[id]}
-    return jsonify(result)
+    else:
+        id_present[id] = 1
+        id_value[id] = 0
+    return jsonify({'data': 'Hello, %s!' % auth.current_user()})
 
 @app.route('/update/', methods = ['POST'])
+@auth.login_required()
 def update():
     jsondata = request.get_json()
     data = json.loads(jsondata)
     try:
-        id = data["id"]
+        id = auth.current_user()
         val = int(data["delta"])
     except:
         return jsonify({"error": "invalid data sent to the server"})
@@ -62,23 +64,21 @@ def update():
     result = {"new_value": id_value[id]}
     return json.dumps(result)
 
-@app.route('/close/', methods = ['POST'])
+@app.route('/close/')
+@auth.login_required()
 def close():
-    jsondata = request.get_json()
-    data = json.loads(jsondata)
-    try:
-        id = data["id"]
-    except:
-        return jsonify({"error": "invalid data sent to the server"})
+    id = auth.current_user()
     id_present[id] -= 1
     if id_present[id] == 0:
         id_present.pop(id, None)
-        id_password.pop(id, None)
-        id_url.pop(id, None)
         id_value.pop(id, None)
-
+        users.pop(id, None)
     result = {"response": 0}
     return json.dumps(result)
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=13370)
+
+# curl -u susan:bye -i -X GET http://127.0.0.1:13370/register/
+# curl -u susan:bye -i -X POST "Content-Type: application/json" -d '{"delta":"1"}' http://127.0.0.1:13370/update/
+# curl -u susan:bye -i -X GET http://127.0.0.1:13370/close/
