@@ -3,6 +3,14 @@ import json
 import time
 import sys
 
+def exit_connection(config):
+    print("Logging out...")
+    message = {'id': config["id"]}
+    res = requests.post(server_url + '/close/', json=json.dumps(message)).json()
+    print("Done.")
+    print("Client finished.")
+    exit(0)
+
 filename = sys.argv[1]
 
 with open(filename) as config_file:
@@ -15,7 +23,7 @@ res = requests.post(server_url + "/register/", json=json.dumps(message)).json()
 
 if "error" in res:
     print(res["error"])
-    exit(0)
+    exit_connection(config)
 print("Registered successfully.")
 
 url_nxt = res["url"]
@@ -27,20 +35,22 @@ for item in actions:
     value = int(value)
     if action == 'DECREASE':
         value *= -1
+    elif action == 'INCREASE':
+        value *= 1
+    else:
+        print('error: invalid action value in json')
+        continue
+
     print("Sending value delta " + str(value) + "...")
     message = {'id': config["id"], 'delta': value}
     res = requests.post(server_url + url_nxt, json=json.dumps(message)).json()
 
     if "error" in res:
         print(res["error"])
-        exit(0)
+        exit_connection(config)
     print("New value set to " + str(res["new_value"]) + ".")
     print("Done.")
 
     time.sleep(delay)
 
-print("Logging out...")
-message = {'id': config["id"]}
-res = requests.post(server_url + '/close/', json=json.dumps(message)).json()
-print("Done.")
-print("Client finished.")
+exit_connection(config)

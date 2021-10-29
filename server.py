@@ -1,6 +1,21 @@
 from flask import Flask, request, url_for, jsonify
 import json
 
+
+#python client.py config_1.json
+
+# encrypted id and password
+# get rid of /update url or authentication check on each update
+# port listener
+# decrease or decease (config typo)
+# client not working when server under dos
+#
+
+# false accusations:
+# authomatic logging out is on purpose
+# counters are not separate on purpose
+
+
 app = Flask(__name__)
 
 id_present = dict()
