@@ -50,7 +50,7 @@ def register():
         id_value[id] = 0
     return jsonify({'data': 'Hello, %s!' % auth.current_user()})
 
-@limiter.limit("10/minute")
+
 @app.route('/update/', methods = ['POST'])
 @auth.login_required()
 def update():
