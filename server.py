@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, session, request, jsonify
 import json
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 #python client.py config_1.json
 
 # encrypted id and password
@@ -19,11 +20,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
-
+limiter = Limiter(app, key_func=get_remote_address)
 users = dict() #id - hashed password
 id_present = dict() # id - num of active sessions for id
 id_value = dict() # id - id's counter
 
+@limiter.limit("10/minute")
 @auth.verify_password
 def verify_password(username, password):
     # user_id = verify_auth_token(username)
@@ -36,7 +38,7 @@ def verify_password(username, password):
         users[username] = generate_password_hash(password)
         return True
     return True
-
+@limiter.limit("10/minute")
 @app.route('/register/')
 @auth.login_required
 def register():
@@ -48,6 +50,7 @@ def register():
         id_value[id] = 0
     return jsonify({'data': 'Hello, %s!' % auth.current_user()})
 
+@limiter.limit("10/minute")
 @app.route('/update/', methods = ['POST'])
 @auth.login_required()
 def update():
