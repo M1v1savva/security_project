@@ -20,6 +20,7 @@ try:
     res.raise_for_status()
 except requests.exceptions.HTTPError as err:
     raise SystemExit(err)
+print(res.json()['data'])
 
 actions = config["actions"]["steps"]
 delay = int(config["actions"]["delay"])

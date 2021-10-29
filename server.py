@@ -4,19 +4,9 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-#python client.py config_1.json
-
-# encrypted id and password
-# get rid of /update url or authentication check on each update
-# port listener
-# decrease or decease (config typo)
-# client not working when server under dos
-#
-
-# false accusations:
-# authomatic logging out is on purpose
-# counters are not separate on purpose
-
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -24,6 +14,26 @@ limiter = Limiter(app, key_func=get_remote_address)
 users = dict() #id - hashed password
 id_present = dict() # id - num of active sessions for id
 id_value = dict() # id - id's counter
+id_last = dict() #id - last used time (session timeout monitor)
+
+def clean_sessions():
+    print('cleaning sessions')
+    to_delete = []
+    for id in id_last:
+        interval = time.time() - id_last[id]
+        if interval > 10 * 60:
+            to_delete.append(id)
+    print('sessions to be terminated:')
+    print(to_delete)
+    for id in to_delete:
+        users.pop(id, None)
+        id_present.pop(id, None)
+        id_value.pop(id, None)
+        id_last.pop(id, None)
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=clean_sessions, trigger="interval", seconds=60 * 10)
+scheduler.start()
 
 @limiter.limit("10/minute")
 @auth.verify_password
@@ -38,11 +48,13 @@ def verify_password(username, password):
         users[username] = generate_password_hash(password)
         return True
     return True
+
 @limiter.limit("10/minute")
 @app.route('/register/')
 @auth.login_required
 def register():
     id = auth.current_user()
+    id_last[id] = time.time()
     if id in id_present:
         id_present[id] += 1
     else:
@@ -56,8 +68,11 @@ def register():
 def update():
     jsondata = request.get_json()
     data = json.loads(jsondata)
+    id = auth.current_user()
+    if id not in id_present:
+        return jsonify({"error": "invalid data sent to the server"})
+    id_last[id] = time.time()
     try:
-        id = auth.current_user()
         val = int(data["delta"])
     except:
         return jsonify({"error": "invalid data sent to the server"})
@@ -71,6 +86,9 @@ def update():
 @auth.login_required()
 def close():
     id = auth.current_user()
+    if id not in id_present:
+        return jsonify({"error": "invalid data sent to the server"})
+    id_last[id] = time.time()
     id_present[id] -= 1
     if id_present[id] == 0:
         id_present.pop(id, None)
@@ -81,6 +99,8 @@ def close():
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=13370)
+
+atexit.register(lambda: scheduler.shutdown())
 
 # curl -u susan:bye -i -X GET http://127.0.0.1:13370/register/
 # curl -u susan:bye -i -X POST "Content-Type: application/json" -d '{"delta":"1"}' http://127.0.0.1:13370/update/
