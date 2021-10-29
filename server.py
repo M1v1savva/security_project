@@ -77,7 +77,7 @@ def close():
     return json.dumps(result)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=13370)
+    app.run(debug=True, ssl_context='adhoc', host='127.0.0.1', port=13370)
 
 # curl -u susan:bye -i -X GET http://127.0.0.1:13370/register/
 # curl -u susan:bye -i -X POST "Content-Type: application/json" -d '{"delta":"1"}' http://127.0.0.1:13370/update/
