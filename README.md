@@ -1,4 +1,5 @@
 # Secure client-server connection
+This project was completed as a part of Computer Security course within UM DSAI bachelor's program.
 
 ---
 Authors:<br/>
