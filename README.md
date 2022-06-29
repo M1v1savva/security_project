@@ -1,4 +1,4 @@
-# Computer security project
+# Secure client-server connection
 
 ---
 Authors:<br/>
